@@ -30,6 +30,7 @@ class TelegramBot:
         self.application.add_handler(CommandHandler("help", self.handlers.help_command))
         self.application.add_handler(CommandHandler("status", self.handlers.status_command))
         self.application.add_handler(CommandHandler("echo", self.handlers.echo_command))
+        self.application.add_handler(CommandHandler("reset", self.handlers.reset_command))
         
         # Message handlers
         self.application.add_handler(MessageHandler(

@@ -8,6 +8,7 @@ from datetime import datetime
 from telegram import Update
 from telegram.ext import ContextTypes
 from utils import format_user_info, is_valid_message
+from ai_service import AIService
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,8 @@ class BotHandlers:
         """Initialize handlers with any required state."""
         self.start_time = datetime.now()
         self.message_count = 0
+        self.ai_service = AIService()
+        self.group_message_count = 0
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -31,12 +34,37 @@ class BotHandlers:
             user = update.effective_user
             user_info = format_user_info(user)
             
-            welcome_message = f"""
-🤖 *Welcome to the 24/7 Bot!*
+            chat_type = update.effective_chat.type if update.effective_chat else "private"
+            is_group = chat_type in ['group', 'supergroup']
+            
+            if is_group:
+                welcome_message = f"""
+🤖 *Welcome to the AI-Enhanced Group Bot!*
 
-Hello {user.first_name}! 👋
+Hello {user.first_name if user.first_name else 'there'}! 
 
-I'm your friendly bot that's available around the clock to help you.
+I'm now active in this group and ready to participate in conversations!
+
+*How to interact with me in groups:*
+• Mention me with @{context.bot.username or 'botname'} to get my attention
+• Reply to my messages to continue conversations
+• Use commands like /help, /status anywhere
+
+*Available Commands:*
+• /start - Show this welcome message
+• /help - Get help and available commands  
+• /status - Check bot status and stats
+• /echo <message> - Echo your message back
+
+I use AI to provide intelligent, contextual responses instead of repetitive messages!
+                """
+            else:
+                welcome_message = f"""
+🤖 *Welcome to the AI-Enhanced 24/7 Bot!*
+
+Hello {user.first_name if user.first_name else 'there'}!
+
+I'm your AI-powered bot that's available around the clock with intelligent responses.
 
 *Available Commands:*
 • /start - Show this welcome message
@@ -44,10 +72,13 @@ I'm your friendly bot that's available around the clock to help you.
 • /status - Check bot status
 • /echo <message> - Echo your message back
 
-You can also just send me any message and I'll respond!
+*New Features:*
+• AI-powered conversations (no more repetitive responses!)
+• Group chat support with mention detection
+• Contextual responses based on chat type
 
-Type /help for more information.
-            """
+Just send me any message and I'll respond intelligently!
+                """
             
             await update.message.reply_text(
                 welcome_message,
@@ -71,30 +102,55 @@ Type /help for more information.
             context: Bot context
         """
         try:
-            help_message = """
-🆘 *Bot Help & Commands*
+            chat_type = update.effective_chat.type if update.effective_chat else "private"
+            is_group = chat_type in ['group', 'supergroup']
+            
+            if is_group:
+                help_message = """
+🆘 *AI Group Bot Help*
 
 *Available Commands:*
-
 🏁 `/start` - Welcome message and bot introduction
 ❓ `/help` - Show this help message
-📊 `/status` - Display bot status and uptime
+📊 `/status` - Display bot status and group stats
 🔄 `/echo <message>` - Echo your message back
 
-*Message Handling:*
-You can send me any text message and I'll respond with a friendly reply!
+*Group Interaction:*
+• Mention me (@botname) to get my attention
+• Reply to my messages to continue conversations
+• I respond with AI-generated contextual replies
+• I won't spam - only respond when mentioned or replied to
 
-*Bot Features:*
-• 24/7 availability
-• Basic conversation handling
-• Command processing
-• Error handling and logging
+*AI Features:*
+• Intelligent, non-repetitive responses
+• Group-aware conversation handling
+• Context understanding and memory
+• Free AI service (no API costs)
 
-*Need more help?*
-This bot is designed to be simple and user-friendly. Just start chatting!
+*Bot Status:* Online with AI ✅
+                """
+            else:
+                help_message = """
+🆘 *AI Bot Help & Commands*
 
-*Bot Status:* Online ✅
-            """
+*Available Commands:*
+🏁 `/start` - Welcome message and bot introduction
+❓ `/help` - Show this help message
+📊 `/status` - Display bot status and AI stats
+🔄 `/echo <message>` - Echo your message back
+
+*AI Message Handling:*
+Send me any text and I'll respond with intelligent, contextual replies using free AI services!
+
+*Enhanced Features:*
+• 24/7 availability with AI responses
+• Intelligent conversation handling
+• Group chat support with mentions
+• Non-repetitive, contextual responses
+• Error handling and comprehensive logging
+
+*Bot Status:* Online with AI Enhancement ✅
+                """
             
             await update.message.reply_text(
                 help_message,
@@ -122,6 +178,7 @@ This bot is designed to be simple and user-friendly. Just start chatting!
             uptime = datetime.now() - self.start_time
             uptime_str = str(uptime).split('.')[0]  # Remove microseconds
             
+            ai_stats = self.ai_service.get_conversation_stats()
             status_message = f"""
 📊 *Bot Status Report*
 
@@ -129,10 +186,14 @@ This bot is designed to be simple and user-friendly. Just start chatting!
 ⏰ *Uptime:* {uptime_str}
 🕐 *Started:* {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}
 💬 *Messages Processed:* {self.message_count}
-🤖 *Bot Version:* 1.0.0
+👥 *Group Messages:* {self.group_message_count}
+🧠 *AI Conversations:* {ai_stats['active_conversations']}
+🤖 *Bot Version:* 2.0.0 (AI Enhanced)
 
 *System Info:*
 • Polling: Active ✅
+• AI Service: Online ✅
+• Group Support: Enabled ✅
 • Error Handling: Enabled ✅
 • Logging: Active ✅
 
@@ -194,67 +255,90 @@ All systems operational! 🚀
         """
         try:
             user = update.effective_user
-            message_text = update.message.text
+            chat = update.effective_chat
+            message = update.message
+            
+            if not user or not chat or not message or not message.text:
+                return
+                
+            message_text = message.text
             
             # Validate message
             if not is_valid_message(message_text):
-                await update.message.reply_text(
+                await message.reply_text(
                     "I received your message, but it seems to be empty or invalid. Please try again!"
                 )
                 return
             
+            # Check if this is a group chat
+            chat_type = chat.type
+            is_group = chat_type in ['group', 'supergroup']
+            
+            # In groups, only respond if mentioned or if it's a direct reply
+            if is_group:
+                bot_username = context.bot.username
+                is_mentioned = f"@{bot_username}" in message_text if bot_username else False
+                is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id
+                
+                if not (is_mentioned or is_reply_to_bot):
+                    # Don't respond to every message in groups unless mentioned
+                    return
+                
+                # Remove mention from message for processing
+                if is_mentioned and bot_username:
+                    message_text = message_text.replace(f"@{bot_username}", "").strip()
+                
+                self.group_message_count += 1
+            
             # Increment message counter
             self.message_count += 1
             
-            # Generate response based on message content
-            response = self.generate_response(message_text)
+            # Generate AI response
+            user_id = str(user.id)
+            response = self.ai_service.generate_response(message_text, user_id, chat_type)
             
-            await update.message.reply_text(response)
+            await message.reply_text(response)
             
-            logger.info(f"Message from {format_user_info(user)}: {message_text[:50]}...")
+            chat_info = f"{chat_type} chat" if is_group else "private chat"
+            logger.info(f"Message from {format_user_info(user)} in {chat_info}: {message_text[:50]}...")
             
         except Exception as e:
             logger.error(f"Error in handle_message: {e}")
-            await update.message.reply_text(
-                "Sorry, I encountered an error processing your message. Please try again!"
-            )
+            if update.message:
+                await update.message.reply_text(
+                    "Sorry, I encountered an error processing your message. Please try again!"
+                )
     
-    def generate_response(self, message_text: str) -> str:
+    async def reset_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
-        Generate a response to user messages.
+        Handle the /reset command to clear AI conversation history.
         
         Args:
-            message_text: The user's message text
-            
-        Returns:
-            Generated response string
+            update: Telegram update object
+            context: Bot context
         """
-        message_lower = message_text.lower()
-        
-        # Greeting responses
-        if any(greeting in message_lower for greeting in ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening']):
-            return "Hello there! 👋 How can I help you today? Feel free to use /help to see what I can do!"
-        
-        # Question responses
-        elif '?' in message_text:
-            return f"That's an interesting question! 🤔 While I'm a simple bot, I received your question: \"{message_text}\". Try using /help to see my available commands!"
-        
-        # Thanks responses
-        elif any(thanks in message_lower for thanks in ['thank', 'thanks', 'appreciate']):
-            return "You're very welcome! 😊 I'm here 24/7 if you need anything else!"
-        
-        # Bot-related queries
-        elif any(word in message_lower for word in ['bot', 'robot', 'ai', 'artificial']):
-            return "Yes, I'm a Telegram bot! 🤖 I'm designed to be helpful and available 24/7. Use /status to see how I'm doing!"
-        
-        # Help requests
-        elif any(word in message_lower for word in ['help', 'assist', 'support']):
-            return "I'd be happy to help! 🆘 Use /help to see all my available commands, or just keep chatting with me!"
-        
-        # Default response
-        else:
-            return f"Thanks for your message! 💬 I received: \"{message_text}\"\n\nI'm a simple bot, but I'm always here to chat! Use /help to see what commands I support."
-    
+        try:
+            user = update.effective_user
+            if not user or not update.message:
+                return
+                
+            user_id = str(user.id)
+            self.ai_service.clear_conversation_history(user_id)
+            
+            await update.message.reply_text(
+                "🔄 *Conversation Reset*\n\nYour conversation history has been cleared. I'll start fresh with our next chat!",
+                parse_mode='Markdown'
+            )
+            
+            logger.info(f"Reset command received from {format_user_info(user)}")
+            
+        except Exception as e:
+            logger.error(f"Error in reset_command: {e}")
+            if update.message:
+                await update.message.reply_text(
+                    "Sorry, I couldn't reset the conversation. Please try again."
+                )
+
     async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
         Handle errors that occur during bot operation.
