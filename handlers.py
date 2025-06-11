@@ -46,8 +46,8 @@ Hello {user.first_name if user.first_name else 'there'}!
 I'm now active in this group and ready to participate in conversations!
 
 *How to interact with me in groups:*
-• Mention me with @{context.bot.username or 'botname'} to get my attention
-• Reply to my messages to continue conversations
+• I respond to all messages automatically with AI-generated replies
+• Mention me with @{context.bot.username or 'botname'} for direct interaction
 • Use commands like /help, /status anywhere
 
 *Available Commands:*
@@ -119,10 +119,10 @@ Just send me any message and I'll respond intelligently!
 🔄 `/reset` - Clear conversation history
 
 *Group Interaction:*
-• Mention me (@botname) to get my attention
-• Reply to my messages to continue conversations
-• I respond with AI-generated contextual replies
-• I won't spam - only respond when mentioned or replied to
+• I respond to all messages in groups with AI-generated replies
+• Mention me (@botname) for more direct interaction
+• I provide contextual responses to group conversations
+• Each response is unique and intelligent
 
 *AI Features:*
 • Intelligent, non-repetitive responses
@@ -278,15 +278,10 @@ All systems operational! 🚀
             chat_type = chat.type
             is_group = chat_type in ['group', 'supergroup']
             
-            # In groups, only respond if mentioned or if it's a direct reply
+            # In groups, respond to all messages but remove mentions if present
             if is_group:
                 bot_username = context.bot.username
                 is_mentioned = f"@{bot_username}" in message_text if bot_username else False
-                is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id
-                
-                if not (is_mentioned or is_reply_to_bot):
-                    # Don't respond to every message in groups unless mentioned
-                    return
                 
                 # Remove mention from message for processing
                 if is_mentioned and bot_username:
