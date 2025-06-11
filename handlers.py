@@ -55,6 +55,7 @@ I'm now active in this group and ready to participate in conversations!
 • /help - Get help and available commands  
 • /status - Check bot status and stats
 • /echo <message> - Echo your message back
+• /reset - Clear conversation history
 
 I use AI to provide intelligent, contextual responses instead of repetitive messages!
                 """
@@ -71,6 +72,7 @@ I'm your AI-powered bot that's available around the clock with intelligent respo
 • /help - Get help and available commands
 • /status - Check bot status
 • /echo <message> - Echo your message back
+• /reset - Clear conversation history
 
 *New Features:*
 • AI-powered conversations (no more repetitive responses!)
@@ -114,6 +116,7 @@ Just send me any message and I'll respond intelligently!
 ❓ `/help` - Show this help message
 📊 `/status` - Display bot status and group stats
 🔄 `/echo <message>` - Echo your message back
+🔄 `/reset` - Clear conversation history
 
 *Group Interaction:*
 • Mention me (@botname) to get my attention
@@ -138,6 +141,7 @@ Just send me any message and I'll respond intelligently!
 ❓ `/help` - Show this help message
 📊 `/status` - Display bot status and AI stats
 🔄 `/echo <message>` - Echo your message back
+🔄 `/reset` - Clear conversation history
 
 *AI Message Handling:*
 Send me any text and I'll respond with intelligent, contextual replies using free AI services!
