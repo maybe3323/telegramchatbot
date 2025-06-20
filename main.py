@@ -8,6 +8,7 @@ import logging
 import sys
 from bot import TelegramBot
 from config import Config
+from keep_alive import keep_alive
 
 # Configure logging
 logging.basicConfig(
@@ -24,6 +25,9 @@ logger = logging.getLogger(__name__)
 def main():
     """Main function to start the Telegram bot."""
     try:
+        # Start keep_alive web server (for Replit/UptimeRobot)
+        keep_alive()
+
         # Initialize configuration
         config = Config()
         
